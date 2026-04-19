@@ -1,0 +1,1299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=1360"/>
+<title>SITE2GYM · Mobile App Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #000; font-family: 'Inter Tight', system-ui, sans-serif; overflow: hidden; }
+  #root { width: 1360px; height: 768px; position: relative; }
+  *::-webkit-scrollbar { display: none; }
+  @keyframes scan    { 0% { top: 10%; } 50% { top: 90%; } 100% { top: 10%; } }
+  @keyframes pagein  { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: translateY(0) } }
+  @keyframes dropin  { from { transform: translateY(-20px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+  @keyframes fadein  { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes slideup { from { transform: translateY(100%) } to { transform: translateY(0) } }
+  @keyframes spin0   { to { transform: rotate(360deg); } }
+  @keyframes spin1   { to { transform: rotate(-360deg); } }
+  @keyframes spin2   { to { transform: rotate(360deg); } }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
+
+// ───────── tokens ─────────
+const C = {
+  bg: '#000',
+  bg2: '#0A0B0C',
+  surface: 'rgba(255,255,255,0.04)',
+  surfaceHi: 'rgba(255,255,255,0.07)',
+  line: 'rgba(255,255,255,0.09)',
+  lineHi: 'rgba(255,255,255,0.16)',
+  text: '#F5F6F7',
+  textDim: 'rgba(245,246,247,0.62)',
+  textMute: 'rgba(245,246,247,0.38)',
+  lime: '#D0FF00',
+  limeDim: 'rgba(208,255,0,0.14)',
+  cyan: '#00F0FF',
+  cyanDim: 'rgba(0,240,255,0.14)',
+  magenta: '#FF2E88',
+  amber: '#FFB020',
+};
+
+const FONT = `'Inter Tight', 'SF Pro Display', -apple-system, system-ui, sans-serif`;
+const MONO = `'JetBrains Mono', ui-monospace, Menlo, monospace`;
+
+// ───────── icons ─────────
+const Ic = {
+  home:  (c = '#fff', s = 22) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M3 11l9-7 9 7v9a2 2 0 01-2 2h-4v-6h-6v6H5a2 2 0 01-2-2v-9z" stroke={c} strokeWidth="1.8" strokeLinejoin="round"/></svg>,
+  cal:   (c = '#fff', s = 22) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="3" stroke={c} strokeWidth="1.8"/><path d="M3 10h18M8 3v4M16 3v4" stroke={c} strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  key:   (c = '#fff', s = 22) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><circle cx="8" cy="12" r="4" stroke={c} strokeWidth="1.8"/><path d="M12 12h9M17 12v4M21 12v3" stroke={c} strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  card:  (c = '#fff', s = 22) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke={c} strokeWidth="1.8"/><path d="M3 10h18M7 15h4" stroke={c} strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  user:  (c = '#fff', s = 22) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke={c} strokeWidth="1.8"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6" stroke={c} strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  plus:  (c = '#000', s = 22) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M12 4v16M4 12h16" stroke={c} strokeWidth="2.4" strokeLinecap="round"/></svg>,
+  bolt:  (c = '#fff', s = 18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z" stroke={c} strokeWidth="1.6" strokeLinejoin="round" fill="none"/></svg>,
+  fire:  (c = '#fff', s = 18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M12 3c1 3 4 4 4 8a4 4 0 11-8 0c0-1.5.5-2.5 1-3 0 2 2 3 2 0 0-2 0-3 1-5z" stroke={c} strokeWidth="1.6" strokeLinejoin="round"/></svg>,
+  clock: (c = '#fff', s = 16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke={c} strokeWidth="1.6"/><path d="M12 7v5l3 2" stroke={c} strokeWidth="1.6" strokeLinecap="round"/></svg>,
+  pin:   (c = '#fff', s = 14) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M12 22s7-7 7-12a7 7 0 10-14 0c0 5 7 12 7 12z" stroke={c} strokeWidth="1.6"/><circle cx="12" cy="10" r="2.5" stroke={c} strokeWidth="1.6"/></svg>,
+  chev:  (c = '#fff', s = 14) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  bell:  (c = '#fff', s = 18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M6 9a6 6 0 1112 0c0 5 2 7 2 7H4s2-2 2-7zM10 20a2 2 0 004 0" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  qr:    (c = '#fff', s = 18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" stroke={c} strokeWidth="1.6"/><rect x="14" y="3" width="7" height="7" stroke={c} strokeWidth="1.6"/><rect x="3" y="14" width="7" height="7" stroke={c} strokeWidth="1.6"/><path d="M14 14h3v3M21 14v7M14 21h3" stroke={c} strokeWidth="1.6"/></svg>,
+  trophy:(c = '#fff', s = 18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M8 4h8v5a4 4 0 11-8 0V4zM4 5h4v3a2 2 0 01-4 0V5zM16 5h4v3a2 2 0 01-4 0V5zM9 15h6v2H9zM8 19h8v2H8z" stroke={c} strokeWidth="1.6" strokeLinejoin="round"/></svg>,
+  gear:  (c = '#fff', s = 16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke={c} strokeWidth="1.6"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke={c} strokeWidth="1.6" strokeLinecap="round"/></svg>,
+};
+
+// ───────── iOS device frame (status bar + bezel) ─────────
+function IOSStatusBar({ dark = false, time = '9:41' }) {
+  const c = dark ? '#fff' : '#000';
+  return (
+    <div style={{
+      display: 'flex', gap: 154, alignItems: 'center', justifyContent: 'center',
+      padding: '21px 24px 19px', boxSizing: 'border-box',
+      position: 'relative', zIndex: 20, width: '100%',
+    }}>
+      <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 1.5 }}>
+        <span style={{
+          fontFamily: '-apple-system, "SF Pro", system-ui', fontWeight: 590,
+          fontSize: 17, lineHeight: '22px', color: c,
+        }}>{time}</span>
+      </div>
+      <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, paddingTop: 1, paddingRight: 1 }}>
+        <svg width="19" height="12" viewBox="0 0 19 12">
+          <rect x="0" y="7.5" width="3.2" height="4.5" rx="0.7" fill={c}/>
+          <rect x="4.8" y="5" width="3.2" height="7" rx="0.7" fill={c}/>
+          <rect x="9.6" y="2.5" width="3.2" height="9.5" rx="0.7" fill={c}/>
+          <rect x="14.4" y="0" width="3.2" height="12" rx="0.7" fill={c}/>
+        </svg>
+        <svg width="17" height="12" viewBox="0 0 17 12">
+          <path d="M8.5 3.2C10.8 3.2 12.9 4.1 14.4 5.6L15.5 4.5C13.7 2.7 11.2 1.5 8.5 1.5C5.8 1.5 3.3 2.7 1.5 4.5L2.6 5.6C4.1 4.1 6.2 3.2 8.5 3.2Z" fill={c}/>
+          <path d="M8.5 6.8C9.9 6.8 11.1 7.3 12 8.2L13.1 7.1C11.8 5.9 10.2 5.1 8.5 5.1C6.8 5.1 5.2 5.9 3.9 7.1L5 8.2C5.9 7.3 7.1 6.8 8.5 6.8Z" fill={c}/>
+          <circle cx="8.5" cy="10.5" r="1.5" fill={c}/>
+        </svg>
+        <svg width="27" height="13" viewBox="0 0 27 13">
+          <rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke={c} strokeOpacity="0.35" fill="none"/>
+          <rect x="2" y="2" width="20" height="9" rx="2" fill={c}/>
+          <path d="M25 4.5V8.5C25.8 8.2 26.5 7.2 26.5 6.5C26.5 5.8 25.8 4.8 25 4.5Z" fill={c} fillOpacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function IOSDevice({ children, width = 402, height = 874, dark = false }) {
+  return (
+    <div style={{
+      width, height, borderRadius: 48, overflow: 'hidden',
+      position: 'relative', background: dark ? '#000' : '#F2F2F7',
+      boxShadow: '0 40px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.12)',
+      fontFamily: '-apple-system, system-ui, sans-serif',
+      WebkitFontSmoothing: 'antialiased',
+    }}>
+      <div style={{
+        position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+        width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50,
+      }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+        <IOSStatusBar dark={dark} />
+      </div>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, overflow: 'auto' }}>{children}</div>
+      </div>
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 60,
+        height: 34, display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
+        paddingBottom: 8, pointerEvents: 'none',
+      }}>
+        <div style={{
+          width: 139, height: 5, borderRadius: 100,
+          background: dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.25)',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+// ───────── shared atoms ─────────
+function GlowCard({ children, style, glow = false, onClick }) {
+  return (
+    <div onClick={onClick} style={{
+      position: 'relative', borderRadius: 22,
+      background: 'linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02))',
+      border: `1px solid ${glow ? 'rgba(208,255,0,0.35)' : C.line}`,
+      boxShadow: glow ? '0 0 0 1px rgba(208,255,0,0.08), 0 24px 60px -20px rgba(208,255,0,0.25)' : 'none',
+      overflow: 'hidden',
+      ...style,
+    }}>{children}</div>
+  );
+}
+
+function Pill({ children, tone = 'lime', style }) {
+  const tones = {
+    lime:  { bg: 'rgba(208,255,0,0.14)', fg: C.lime, br: 'rgba(208,255,0,0.25)' },
+    cyan:  { bg: 'rgba(0,240,255,0.12)', fg: C.cyan, br: 'rgba(0,240,255,0.25)' },
+    white: { bg: 'rgba(255,255,255,0.06)', fg: C.text, br: C.line },
+    amber: { bg: 'rgba(255,176,32,0.12)', fg: C.amber, br: 'rgba(255,176,32,0.3)' },
+  };
+  const t = tones[tone];
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '4px 9px', borderRadius: 999,
+      background: t.bg, color: t.fg, border: `1px solid ${t.br}`,
+      fontSize: 10.5, fontWeight: 600, letterSpacing: 0.4, textTransform: 'uppercase',
+      fontFamily: MONO,
+      ...style,
+    }}>{children}</span>
+  );
+}
+
+function NeonButton({ children, full, tone = 'lime', onClick, style }) {
+  const bg = tone === 'lime' ? C.lime : tone === 'cyan' ? C.cyan : '#fff';
+  return (
+    <button onClick={onClick} style={{
+      width: full ? '100%' : 'auto',
+      height: 54, border: 'none',
+      background: bg, color: '#000',
+      borderRadius: 16, cursor: 'pointer',
+      fontFamily: FONT, fontSize: 15.5, fontWeight: 700, letterSpacing: -0.2,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+      boxShadow: `0 10px 40px -10px ${bg}, inset 0 1px 0 rgba(255,255,255,0.5)`,
+      transition: 'transform .15s ease, box-shadow .15s ease',
+      ...style,
+    }}
+    onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+      {children}
+    </button>
+  );
+}
+
+function GhostButton({ children, full, onClick, style }) {
+  return (
+    <button onClick={onClick} style={{
+      width: full ? '100%' : 'auto',
+      height: 54, borderRadius: 16,
+      background: 'rgba(255,255,255,0.04)', color: C.text,
+      border: `1px solid ${C.lineHi}`,
+      fontFamily: FONT, fontSize: 15, fontWeight: 600, letterSpacing: -0.2,
+      cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+      ...style,
+    }}>{children}</button>
+  );
+}
+
+function NoisePane({ h = 180, label, tone = 'lime' }) {
+  const accent = tone === 'lime' ? C.lime : C.cyan;
+  return (
+    <div style={{
+      height: h, borderRadius: 20, position: 'relative', overflow: 'hidden',
+      background: `
+        radial-gradient(120% 100% at 10% 0%, ${accent}22, transparent 60%),
+        radial-gradient(120% 100% at 100% 100%, ${C.cyan}18, transparent 60%),
+        repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 8px),
+        #0C0E10`,
+      border: `1px solid ${C.line}`,
+    }}>
+      {label && (
+        <div style={{
+          position: 'absolute', left: 12, bottom: 10,
+          fontFamily: MONO, fontSize: 10, color: 'rgba(255,255,255,0.5)',
+          textTransform: 'uppercase', letterSpacing: 1,
+        }}>[ {label} ]</div>
+      )}
+    </div>
+  );
+}
+
+function IconCircle({ children }) {
+  return (
+    <div style={{
+      width: 42, height: 42, borderRadius: 21,
+      background: C.surface, border: `1px solid ${C.line}`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>{children}</div>
+  );
+}
+
+function SectionHead({ title, right }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+      <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: -0.4 }}>{title}</div>
+      {right && <div style={{ fontSize: 12.5, color: C.lime, fontWeight: 500 }}>{right}</div>}
+    </div>
+  );
+}
+
+function Stat({ label, v }) {
+  return (
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: -0.4 }}>{v}</div>
+      <div style={{ fontSize: 11, color: C.textDim, fontFamily: MONO, letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 2 }}>{label}</div>
+    </div>
+  );
+}
+
+function HeroMark() {
+  return (
+    <div style={{ width: 220, height: 220, position: 'relative' }}>
+      {[0, 1, 2].map(i => (
+        <div key={i} style={{
+          position: 'absolute', inset: i * 22,
+          borderRadius: '50%',
+          border: `1px solid ${i === 0 ? C.lime : i === 1 ? 'rgba(0,240,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
+          boxShadow: i === 0 ? `0 0 60px ${C.lime}66, inset 0 0 30px ${C.lime}33` : 'none',
+          animation: `spin${i} ${18 + i*6}s linear infinite`,
+        }} />
+      ))}
+      <div style={{
+        position: 'absolute', inset: 66,
+        borderRadius: '50%',
+        background: `radial-gradient(circle at 30% 30%, #fff, ${C.lime} 60%, #7c9a00)`,
+        boxShadow: `0 0 80px ${C.lime}aa`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#000', fontSize: 36, fontWeight: 900, fontFamily: MONO,
+      }}>S2</div>
+    </div>
+  );
+}
+
+function XPRing({ xp }) {
+  const pct = 0.72;
+  const r = 38, c = 2 * Math.PI * r;
+  return (
+    <div style={{ width: 96, height: 96, position: 'relative' }}>
+      <svg width="96" height="96" viewBox="0 0 96 96">
+        <defs>
+          <linearGradient id="xpg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor={C.lime}/>
+            <stop offset="1" stopColor={C.cyan}/>
+          </linearGradient>
+        </defs>
+        <circle cx="48" cy="48" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6"/>
+        <circle cx="48" cy="48" r={r} fill="none" stroke="url(#xpg)" strokeWidth="6"
+          strokeDasharray={`${c*pct} ${c}`} strokeLinecap="round" transform="rotate(-90 48 48)"/>
+      </svg>
+      <div style={{
+        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>{xp.toLocaleString()}</div>
+        <div style={{ fontFamily: MONO, fontSize: 9, color: C.textMute, letterSpacing: 1 }}>XP</div>
+      </div>
+    </div>
+  );
+}
+
+function pseudoRand(i) {
+  const x = Math.sin(i * 9.7 + 3.1) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+// ───────── ONBOARDING ─────────
+function OnboardingScreen({ step, setStep, onFinish, userType, setUserType }) {
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: C.bg, color: C.text }}>
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: `
+          radial-gradient(80% 50% at 20% 10%, ${C.limeDim}, transparent 60%),
+          radial-gradient(60% 40% at 100% 90%, ${C.cyanDim}, transparent 60%)`,
+      }} />
+      <div style={{ flex: 1, position: 'relative', padding: '70px 24px 20px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          {[0,1,2].map(i => (
+            <div key={i} style={{
+              height: 3, flex: i === step ? 2 : 1, borderRadius: 2,
+              background: i === step ? C.lime : 'rgba(255,255,255,0.15)',
+              transition: 'all .3s ease',
+            }} />
+          ))}
+        </div>
+
+        {step === 0 && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <HeroMark />
+            </div>
+            <div style={{ fontFamily: MONO, fontSize: 11, color: C.textMute, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>
+              SITE2GYM · v4.0
+            </div>
+            <div style={{ fontSize: 40, fontWeight: 700, lineHeight: 1.02, letterSpacing: -1.2, textWrap: 'balance' }}>
+              Train like<br/>the <span style={{ color: C.lime }}>machine</span> knows you.
+            </div>
+            <div style={{ color: C.textDim, marginTop: 14, fontSize: 15, lineHeight: 1.45, maxWidth: 320 }}>
+              Memberships, classes, door access and PT — all in one kit. Zero front-desk friction.
+            </div>
+            <div style={{ marginTop: 28 }}>
+              <NeonButton full onClick={() => setStep(1)}>Get started →</NeonButton>
+              <div style={{ textAlign: 'center', color: C.textDim, marginTop: 14, fontSize: 13 }}>
+                Have an account? <span style={{ color: C.lime }}>Sign in</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 1 && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 28 }}>
+            <div style={{ fontFamily: MONO, fontSize: 11, color: C.textMute, letterSpacing: 2, textTransform: 'uppercase' }}>Step 2 of 3</div>
+            <div style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.05, letterSpacing: -1, marginTop: 6 }}>
+              How are you showing up today?
+            </div>
+            <div style={{ display: 'grid', gap: 12, marginTop: 26 }}>
+              {[
+                { id: 'member',   title: 'Member',   sub: 'Train, book, enter gyms',      accent: C.lime },
+                { id: 'employee', title: 'Employee', sub: 'Ops, attendance, members',     accent: C.cyan },
+              ].map(o => {
+                const on = userType === o.id;
+                return (
+                  <div key={o.id} onClick={() => setUserType(o.id)} style={{
+                    padding: 18, borderRadius: 20, cursor: 'pointer',
+                    border: `1px solid ${on ? o.accent : C.line}`,
+                    background: on ? `linear-gradient(180deg, ${o.accent}14, transparent)` : C.surface,
+                    boxShadow: on ? `0 10px 40px -12px ${o.accent}` : 'none',
+                    display: 'flex', gap: 14, alignItems: 'center',
+                  }}>
+                    <div style={{
+                      width: 54, height: 54, borderRadius: 16,
+                      background: on ? o.accent : 'rgba(255,255,255,0.06)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: on ? '#000' : C.text,
+                    }}>
+                      {o.id === 'member' ? Ic.bolt(on ? '#000' : '#fff', 22) : Ic.gear(on ? '#000' : '#fff', 20)}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: -0.3 }}>{o.title}</div>
+                      <div style={{ color: C.textDim, fontSize: 13 }}>{o.sub}</div>
+                    </div>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: 11,
+                      border: `1.5px solid ${on ? o.accent : C.lineHi}`,
+                      background: on ? o.accent : 'transparent',
+                    }} />
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ flex: 1 }} />
+            <NeonButton full onClick={() => setStep(2)}>Continue</NeonButton>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 28 }}>
+            <div style={{ fontFamily: MONO, fontSize: 11, color: C.textMute, letterSpacing: 2, textTransform: 'uppercase' }}>Step 3 of 3</div>
+            <div style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.05, letterSpacing: -1, marginTop: 6 }}>Pick your home gym.</div>
+            <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { city: 'HSR Layout',  d: '1.2 km', open: true,  spots: '14 spots' },
+                { city: 'Indiranagar', d: '3.8 km', open: true,  spots: '6 spots' },
+                { city: 'Whitefield',  d: '9.1 km', open: false, spots: 'Opens 5:30' },
+                { city: 'Koramangala', d: '4.4 km', open: true,  spots: '22 spots' },
+              ].map((l, i) => (
+                <div key={i} style={{
+                  padding: '14px 16px', borderRadius: 16,
+                  border: `1px solid ${i === 0 ? 'rgba(208,255,0,0.35)' : C.line}`,
+                  background: i === 0 ? 'rgba(208,255,0,0.06)' : C.surface,
+                  display: 'flex', alignItems: 'center', gap: 12,
+                }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {Ic.pin(i === 0 ? C.lime : '#fff', 18)}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 15, fontWeight: 600 }}>SITE2GYM · {l.city}</div>
+                    <div style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{l.d} away · {l.spots}</div>
+                  </div>
+                  <Pill tone={l.open ? 'lime' : 'white'}>{l.open ? 'Open' : 'Closed'}</Pill>
+                </div>
+              ))}
+            </div>
+            <div style={{ flex: 1 }} />
+            <NeonButton full onClick={onFinish}>Enter app</NeonButton>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ───────── HOME ─────────
+function HomeScreen({ onEnter, onNav, streak, xp }) {
+  return (
+    <div style={{ padding: '60px 20px 120px', color: C.text, minHeight: '100%', background: C.bg, position: 'relative' }}>
+      <div style={{ position: 'absolute', top: 0, right: -40, width: 240, height: 240, background: `radial-gradient(circle, ${C.limeDim}, transparent 70%)`, filter: 'blur(10px)', pointerEvents: 'none' }} />
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+        <div>
+          <div style={{ fontFamily: MONO, fontSize: 10.5, color: C.textMute, letterSpacing: 1.6, textTransform: 'uppercase' }}>Wednesday · 06:24</div>
+          <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.8, marginTop: 2 }}>Hi, Aswini</div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <IconCircle>{Ic.bell('#fff', 18)}</IconCircle>
+          <div style={{
+            width: 42, height: 42, borderRadius: 21,
+            background: `linear-gradient(135deg, ${C.lime}, ${C.cyan})`,
+            border: `2px solid ${C.bg}`,
+            boxShadow: `0 0 0 2px ${C.line}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#000', fontWeight: 700, fontSize: 14,
+          }}>AK</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 18 }}>
+        <GlowCard style={{ padding: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {Ic.fire(C.amber, 18)}
+            <div style={{ fontFamily: MONO, fontSize: 10, color: C.textMute, letterSpacing: 1, textTransform: 'uppercase' }}>Streak</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 8 }}>
+            <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: -0.8 }}>{streak}</div>
+            <div style={{ fontSize: 13, color: C.textDim }}>days</div>
+          </div>
+          <div style={{ display: 'flex', gap: 3, marginTop: 10 }}>
+            {Array.from({length: 7}).map((_, i) => (
+              <div key={i} style={{
+                flex: 1, height: 6, borderRadius: 3,
+                background: i < 5 ? C.amber : 'rgba(255,255,255,0.08)',
+              }} />
+            ))}
+          </div>
+        </GlowCard>
+        <GlowCard style={{ padding: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {Ic.bolt(C.lime, 16)}
+            <div style={{ fontFamily: MONO, fontSize: 10, color: C.textMute, letterSpacing: 1, textTransform: 'uppercase' }}>XP</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 8 }}>
+            <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: -0.8, color: C.lime }}>{xp.toLocaleString()}</div>
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 10, color: C.textDim, fontFamily: MONO, letterSpacing: 1 }}>LVL 12 · 340 TO 13</div>
+            <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, marginTop: 6, overflow: 'hidden' }}>
+              <div style={{ width: '72%', height: '100%', background: `linear-gradient(90deg, ${C.lime}, ${C.cyan})`, borderRadius: 2 }} />
+            </div>
+          </div>
+        </GlowCard>
+      </div>
+
+      <GlowCard glow style={{ marginTop: 14, padding: 20, position: 'relative' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <Pill tone="lime">ACTIVE · ELITE</Pill>
+            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.6, marginTop: 12 }}>Global Pass</div>
+            <div style={{ color: C.textDim, fontSize: 12.5, marginTop: 2 }}>Unlimited · renews 14 Aug</div>
+          </div>
+          <div style={{ fontFamily: MONO, fontSize: 10, color: C.textMute, letterSpacing: 1 }}>#A71-2K</div>
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+          <NeonButton style={{ flex: 1, height: 46 }} onClick={onEnter}>
+            {Ic.qr('#000', 16)} Enter gym
+          </NeonButton>
+          <button onClick={() => onNav('membership')} style={{
+            flex: 1, height: 46, borderRadius: 14,
+            border: `1px solid ${C.lineHi}`, background: 'rgba(255,255,255,0.05)',
+            color: C.text, fontFamily: FONT, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+          }}>Manage</button>
+        </div>
+      </GlowCard>
+
+      <div style={{ marginTop: 22 }}>
+        <SectionHead title="Quick actions" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          {[
+            { t: 'Book class', i: Ic.cal,   on: () => onNav('booking') },
+            { t: 'Schedule',   i: Ic.clock },
+            { t: 'PT session', i: Ic.bolt },
+          ].map((q, i) => (
+            <div key={i} onClick={q.on} style={{
+              padding: 14, borderRadius: 18,
+              background: C.surface, border: `1px solid ${C.line}`,
+              cursor: q.on ? 'pointer' : 'default',
+            }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(208,255,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {q.i(C.lime, 18)}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 10, letterSpacing: -0.2 }}>{q.t}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 22 }}>
+        <SectionHead title="This week" right="View all →" />
+        <GlowCard style={{ padding: 18 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            {[
+              { d: 'M', v: 60 }, { d: 'T', v: 85 }, { d: 'W', v: 40 },
+              { d: 'T', v: 95, on: true }, { d: 'F', v: 0 }, { d: 'S', v: 70 }, { d: 'S', v: 55 },
+            ].map((b, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <div style={{
+                  width: 18, height: 80, borderRadius: 9,
+                  background: 'rgba(255,255,255,0.05)', position: 'relative',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                    height: `${b.v}%`,
+                    background: b.on ? C.lime : 'rgba(255,255,255,0.2)',
+                    boxShadow: b.on ? `0 0 12px ${C.lime}` : 'none',
+                    borderRadius: 9,
+                  }} />
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 10, color: b.on ? C.lime : C.textMute }}>{b.d}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 18, marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line}` }}>
+            <Stat label="Workouts" v="5" />
+            <Stat label="Visits" v="6" />
+            <Stat label="Cal burn" v="3,240" />
+          </div>
+        </GlowCard>
+      </div>
+
+      <div style={{ marginTop: 22 }}>
+        <SectionHead title="Up next" />
+        <div style={{ display: 'flex', gap: 12, overflowX: 'auto', margin: '0 -20px', padding: '0 20px', scrollbarWidth: 'none' }}>
+          {[
+            { t: 'HIIT · Crush', trainer: 'Kavya R.', time: 'Today · 18:30', img: 'lime' },
+            { t: 'Zone 2 Ride',  trainer: 'Rohan M.', time: 'Thu · 07:00',   img: 'cyan' },
+            { t: 'Power Yoga',   trainer: 'Meera V.', time: 'Fri · 08:15',   img: 'lime' },
+          ].map((c, i) => (
+            <div key={i} style={{ width: 220, flexShrink: 0 }}>
+              <NoisePane h={110} label={c.t} tone={c.img} />
+              <div style={{ padding: '10px 2px' }}>
+                <div style={{ fontSize: 14.5, fontWeight: 600 }}>{c.t}</div>
+                <div style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{c.trainer} · {c.time}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ───────── BOOKING ─────────
+function BookingScreen({ onBooked }) {
+  const [dayIdx, setDayIdx] = useState(2);
+  const [selected, setSelected] = useState(null);
+  const days = ['Mon 11','Tue 12','Wed 13','Thu 14','Fri 15','Sat 16','Sun 17'];
+
+  const slots = [
+    { t: '06:00', n: 'Morning Burn',    tr: 'Kavya R.',  cap: '12/18', kind: 'HIIT',     accent: C.lime },
+    { t: '07:30', n: 'Power Yoga Flow', tr: 'Meera V.',  cap: '8/20',  kind: 'Yoga',     accent: C.cyan },
+    { t: '09:00', n: 'Strength Block A',tr: 'Varun T.',  cap: '16/16', kind: 'Strength', accent: C.lime, full: true },
+    { t: '18:00', n: 'Zone 2 Ride',     tr: 'Rohan M.',  cap: '9/22',  kind: 'Cycle',    accent: C.cyan },
+    { t: '19:30', n: 'Crush · HIIT',    tr: 'Kavya R.',  cap: '14/18', kind: 'HIIT',     accent: C.lime, featured: true },
+    { t: '20:30', n: 'Mobility Reset',  tr: 'Naveen A.', cap: '3/12',  kind: 'Recovery', accent: C.cyan },
+  ];
+
+  return (
+    <div style={{ padding: '60px 0 140px', color: C.text, minHeight: '100%', background: C.bg }}>
+      <div style={{ padding: '0 20px' }}>
+        <div style={{ fontFamily: MONO, fontSize: 10.5, color: C.textMute, letterSpacing: 1.6, textTransform: 'uppercase' }}>Classes · HSR</div>
+        <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1, marginTop: 2 }}>Book a session</div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '18px 20px', scrollbarWidth: 'none' }}>
+        {days.map((d, i) => {
+          const [dow, num] = d.split(' ');
+          const on = i === dayIdx;
+          return (
+            <div key={i} onClick={() => setDayIdx(i)} style={{
+              flexShrink: 0, width: 56, padding: '10px 0', cursor: 'pointer',
+              borderRadius: 16, textAlign: 'center',
+              background: on ? C.lime : C.surface,
+              color: on ? '#000' : C.text,
+              border: `1px solid ${on ? C.lime : C.line}`,
+              boxShadow: on ? `0 10px 30px -8px ${C.lime}` : 'none',
+            }}>
+              <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: 1, opacity: 0.7 }}>{dow.toUpperCase()}</div>
+              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>{num}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ display: 'flex', gap: 7, overflowX: 'auto', padding: '0 20px 16px', scrollbarWidth: 'none' }}>
+        {['All', 'HIIT', 'Yoga', 'Strength', 'Cycle', 'Recovery'].map((f, i) => (
+          <div key={i} style={{
+            padding: '7px 13px', borderRadius: 999, flexShrink: 0,
+            background: i === 0 ? 'rgba(255,255,255,0.08)' : 'transparent',
+            border: `1px solid ${i === 0 ? C.lineHi : C.line}`,
+            fontSize: 12, fontWeight: 500, color: i === 0 ? C.text : C.textDim,
+          }}>{f}</div>
+        ))}
+      </div>
+
+      <div style={{ padding: '0 20px' }}>
+        {slots.map((s, i) => {
+          const on = selected === i;
+          return (
+            <div key={i} style={{ display: 'flex', gap: 14, position: 'relative', paddingBottom: 14 }}>
+              <div style={{ width: 50, flexShrink: 0, paddingTop: 4 }}>
+                <div style={{ fontFamily: MONO, fontSize: 12, color: C.textDim, letterSpacing: 0.5 }}>{s.t}</div>
+              </div>
+              <div style={{ position: 'absolute', left: 56, top: 6, bottom: 0, width: 1, background: C.line }} />
+              <div style={{ position: 'absolute', left: 53, top: 8, width: 7, height: 7, borderRadius: 4, background: on ? s.accent : 'rgba(255,255,255,0.3)', boxShadow: on ? `0 0 10px ${s.accent}` : 'none' }} />
+              <div onClick={() => !s.full && setSelected(i)} style={{
+                flex: 1, padding: 14, borderRadius: 18, marginLeft: 8,
+                background: on ? `linear-gradient(180deg, ${s.accent}22, transparent)` : C.surface,
+                border: `1px solid ${on ? s.accent : s.featured ? 'rgba(208,255,0,0.3)' : C.line}`,
+                boxShadow: on ? `0 20px 50px -15px ${s.accent}` : 'none',
+                opacity: s.full ? 0.5 : 1,
+                cursor: s.full ? 'not-allowed' : 'pointer',
+                transition: 'all .2s',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: -0.2 }}>{s.n}</div>
+                      {s.featured && <Pill tone="lime">HOT</Pill>}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: C.textDim, marginTop: 3 }}>{s.tr} · 45 min · Studio A</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: MONO, fontSize: 11, color: s.full ? C.magenta : C.textDim, letterSpacing: 0.5 }}>{s.cap}</div>
+                    <Pill tone={s.kind === 'HIIT' || s.kind === 'Strength' ? 'lime' : 'cyan'} style={{ marginTop: 6 }}>{s.kind}</Pill>
+                  </div>
+                </div>
+                {on && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.line}`, display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 17, background: `linear-gradient(135deg, ${s.accent}, #fff)` }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600 }}>{s.tr}</div>
+                      <div style={{ fontSize: 11, color: C.textDim }}>4.9★ · 312 sessions</div>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); onBooked(s); }} style={{
+                      height: 36, padding: '0 14px', borderRadius: 10, border: 'none',
+                      background: s.accent, color: '#000', fontFamily: FONT,
+                      fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                      boxShadow: `0 6px 20px -6px ${s.accent}`,
+                    }}>Book · +50 XP</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ───────── MEMBERSHIP ─────────
+function MembershipScreen() {
+  return (
+    <div style={{ padding: '60px 20px 140px', color: C.text, minHeight: '100%', background: C.bg }}>
+      <div style={{ fontFamily: MONO, fontSize: 10.5, color: C.textMute, letterSpacing: 1.6, textTransform: 'uppercase' }}>Your plan</div>
+      <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1, marginTop: 2 }}>Membership</div>
+
+      <div style={{
+        marginTop: 18, borderRadius: 24, padding: 22,
+        background: `linear-gradient(135deg, ${C.lime} 0%, #8cc700 60%, ${C.cyan} 140%)`,
+        position: 'relative', overflow: 'hidden', color: '#000',
+        boxShadow: `0 30px 80px -20px ${C.lime}`,
+      }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(45deg, rgba(0,0,0,0.04) 0 2px, transparent 2px 12px)' }} />
+        <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: 2 }}>SITE2GYM · ELITE</div>
+            <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: 1 }}>#A71-2K</div>
+          </div>
+          <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: -1.5, marginTop: 22 }}>Global Pass</div>
+          <div style={{ fontSize: 13, marginTop: 4, opacity: 0.8 }}>Unlimited access · 340+ gyms worldwide</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28, fontFamily: MONO, fontSize: 11, letterSpacing: 1 }}>
+            <div>
+              <div style={{ opacity: 0.6 }}>MEMBER</div>
+              <div style={{ fontWeight: 700, marginTop: 2 }}>ASWINI K.</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ opacity: 0.6 }}>RENEWS</div>
+              <div style={{ fontWeight: 700, marginTop: 2 }}>14 AUG 26</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 16 }}>
+        {['Upgrade', 'Freeze', 'Cancel'].map((a, i) => (
+          <div key={i} style={{
+            padding: '14px 10px', borderRadius: 14, textAlign: 'center',
+            background: C.surface, border: `1px solid ${C.line}`,
+            fontSize: 13, fontWeight: 600,
+            color: a === 'Cancel' ? C.magenta : C.text,
+          }}>{a}</div>
+        ))}
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <SectionHead title="Benefits" />
+        <GlowCard style={{ padding: 4 }}>
+          {[
+            { t: '24/7 door access',        s: 'All locations, global',         on: true },
+            { t: 'Unlimited classes',       s: 'HIIT, yoga, cycle, strength',   on: true },
+            { t: '2 PT sessions / month',   s: 'Next renews Jun 1',              on: true },
+            { t: '4 guest passes',          s: '2 remaining this month',        on: true },
+            { t: 'Recovery zone',           s: 'Sauna, cold plunge, mobility',  on: false },
+          ].map((b, i, arr) => (
+            <div key={i} style={{
+              padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'center',
+              borderBottom: i < arr.length - 1 ? `1px solid ${C.line}` : 'none',
+            }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 10,
+                background: b.on ? 'rgba(208,255,0,0.12)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${b.on ? 'rgba(208,255,0,0.3)' : C.line}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: b.on ? C.lime : C.textDim, fontSize: 14,
+              }}>{b.on ? '✓' : '＋'}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 600 }}>{b.t}</div>
+                <div style={{ fontSize: 12, color: C.textDim, marginTop: 1 }}>{b.s}</div>
+              </div>
+              {!b.on && <Pill tone="cyan">ADD-ON</Pill>}
+            </div>
+          ))}
+        </GlowCard>
+      </div>
+
+      <div style={{ marginTop: 22 }}>
+        <SectionHead title="Billing" right="History →" />
+        <GlowCard style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 44, height: 30, borderRadius: 6, background: 'linear-gradient(135deg, #333, #111)', border: `1px solid ${C.line}` }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, fontFamily: MONO, letterSpacing: 0.5 }}>•••• 4421</div>
+            <div style={{ fontSize: 12, color: C.textDim, marginTop: 1 }}>Next charge · 14 Aug · ₹4,999</div>
+          </div>
+          <div style={{ fontSize: 13, color: C.lime, fontWeight: 600 }}>Change</div>
+        </GlowCard>
+      </div>
+    </div>
+  );
+}
+
+// ───────── GYM ACCESS ─────────
+function AccessScreen({ scanning, onScan, scanned, onReset }) {
+  return (
+    <div style={{
+      padding: '60px 20px 140px', color: C.text,
+      minHeight: '100%', position: 'relative',
+      background: `radial-gradient(80% 50% at 50% 0%, rgba(208,255,0,${scanning ? 0.18 : 0.08}), transparent 70%), ${C.bg}`,
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontFamily: MONO, fontSize: 10.5, color: C.textMute, letterSpacing: 1.6, textTransform: 'uppercase' }}>Gym access</div>
+        <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1, marginTop: 2 }}>
+          {scanned ? 'Door unlocked' : scanning ? 'Scanning…' : 'Tap to enter'}
+        </div>
+        <div style={{ fontSize: 13, color: C.textDim, marginTop: 6 }}>
+          {scanned ? 'Welcome, Aswini · HSR Layout' : scanning ? 'Hold near the reader' : 'HSR Layout · 1.2 km'}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 40, display: 'flex', justifyContent: 'center' }}>
+        <div onClick={() => !scanning && !scanned && onScan()} style={{
+          width: 260, height: 260, borderRadius: 32,
+          background: scanned ? `radial-gradient(circle, ${C.lime}, #8cc700)` : '#0A0C0A',
+          border: `1px solid ${scanning ? C.lime : C.line}`,
+          position: 'relative', overflow: 'hidden',
+          boxShadow: scanning ? `0 0 80px ${C.lime}88` : `0 30px 80px -20px ${C.lime}55`,
+          cursor: scanning || scanned ? 'default' : 'pointer',
+          transition: 'all .3s',
+        }}>
+          {[[0,0],[1,0],[0,1],[1,1]].map(([x,y], i) => (
+            <div key={i} style={{
+              position: 'absolute', width: 28, height: 28,
+              [y ? 'bottom' : 'top']: 14, [x ? 'right' : 'left']: 14,
+              borderTop:    y ? 'none' : `2px solid ${scanned ? '#000' : C.lime}`,
+              borderBottom: y ? `2px solid ${scanned ? '#000' : C.lime}` : 'none',
+              borderLeft:   x ? 'none' : `2px solid ${scanned ? '#000' : C.lime}`,
+              borderRight:  x ? `2px solid ${scanned ? '#000' : C.lime}` : 'none',
+              borderTopLeftRadius: !x && !y ? 10 : 0,
+              borderTopRightRadius: x && !y ? 10 : 0,
+              borderBottomLeftRadius: !x && y ? 10 : 0,
+              borderBottomRightRadius: x && y ? 10 : 0,
+            }} />
+          ))}
+
+          {!scanned && (
+            <div style={{
+              position: 'absolute', inset: 44,
+              display: 'grid', gridTemplateColumns: 'repeat(18, 1fr)', gap: 2,
+              opacity: scanning ? 1 : 0.85,
+            }}>
+              {Array.from({length: 324}).map((_, i) => (
+                <div key={i} style={{
+                  aspectRatio: 1,
+                  background: pseudoRand(i) > 0.48 ? C.lime : 'transparent',
+                  borderRadius: 1,
+                }} />
+              ))}
+              {[[0,0],[0,11],[11,0]].map(([r,c],i) => (
+                <div key={`f${i}`} style={{
+                  position: 'absolute', top: `${(r/18)*100}%`, left: `${(c/18)*100}%`,
+                  width: '33%', height: '33%',
+                  border: `3px solid ${C.lime}`, borderRadius: 2, background: '#000',
+                  boxShadow: `inset 0 0 0 3px #000, inset 0 0 0 6px ${C.lime}`,
+                }} />
+              ))}
+            </div>
+          )}
+
+          {scanned && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="120" height="120" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#000" strokeWidth="4" opacity="0.15"/>
+                <path d="M38 62l16 16 32-36" fill="none" stroke="#000" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          )}
+
+          {scanning && (
+            <div style={{
+              position: 'absolute', left: 0, right: 0, height: 3,
+              background: `linear-gradient(90deg, transparent, ${C.lime}, transparent)`,
+              boxShadow: `0 0 20px ${C.lime}`,
+              animation: 'scan 1.5s ease-in-out infinite',
+            }} />
+          )}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 28, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <GlowCard style={{ padding: 12, textAlign: 'center' }}>
+          <div style={{ fontFamily: MONO, fontSize: 9.5, color: C.textMute, letterSpacing: 1 }}>SIGNAL</div>
+          <div style={{ fontSize: 15, fontWeight: 600, marginTop: 4, color: C.lime }}>Strong</div>
+        </GlowCard>
+        <GlowCard style={{ padding: 12, textAlign: 'center' }}>
+          <div style={{ fontFamily: MONO, fontSize: 9.5, color: C.textMute, letterSpacing: 1 }}>GATE</div>
+          <div style={{ fontSize: 15, fontWeight: 600, marginTop: 4 }}>A-03</div>
+        </GlowCard>
+        <GlowCard style={{ padding: 12, textAlign: 'center' }}>
+          <div style={{ fontFamily: MONO, fontSize: 9.5, color: C.textMute, letterSpacing: 1 }}>MODE</div>
+          <div style={{ fontSize: 15, fontWeight: 600, marginTop: 4 }}>NFC/QR</div>
+        </GlowCard>
+      </div>
+
+      <div style={{ marginTop: 20 }}>
+        {!scanned ? (
+          <NeonButton full tone="lime" onClick={onScan}>
+            {scanning ? 'Scanning…' : 'Tap to enter'}
+          </NeonButton>
+        ) : (
+          <GhostButton full onClick={onReset}>Lock & exit</GhostButton>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ───────── PROFILE / LEADERBOARD ─────────
+function ProfileScreen({ streak, xp }) {
+  const [tab, setTab] = useState('stats');
+  return (
+    <div style={{ padding: '60px 20px 140px', color: C.text, minHeight: '100%', background: C.bg }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{
+          width: 72, height: 72, borderRadius: 24,
+          background: `linear-gradient(135deg, ${C.lime}, ${C.cyan})`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#000', fontWeight: 800, fontSize: 24, fontFamily: MONO,
+          boxShadow: `0 20px 40px -10px ${C.lime}`,
+        }}>AK</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.5 }}>Aswini K.</div>
+          <div style={{ fontSize: 12.5, color: C.textDim, marginTop: 2 }}>Elite · joined Mar 2024</div>
+          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+            <Pill tone="lime">LVL 12</Pill>
+            <Pill tone="cyan">TOP 8%</Pill>
+          </div>
+        </div>
+      </div>
+
+      <GlowCard glow style={{ marginTop: 18, padding: 18, display: 'flex', gap: 18, alignItems: 'center' }}>
+        <XPRing xp={xp} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: MONO, fontSize: 10, color: C.textMute, letterSpacing: 1.2 }}>NEXT LEVEL</div>
+          <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.6, marginTop: 2 }}>340 XP</div>
+          <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>3 classes or 1 PT session</div>
+        </div>
+      </GlowCard>
+
+      <div style={{
+        marginTop: 18, padding: 4, borderRadius: 14,
+        background: C.surface, border: `1px solid ${C.line}`,
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4,
+      }}>
+        {['stats','badges','leaderboard'].map(t => (
+          <div key={t} onClick={() => setTab(t)} style={{
+            padding: '10px 0', borderRadius: 10, textAlign: 'center',
+            background: tab === t ? 'rgba(255,255,255,0.08)' : 'transparent',
+            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            color: tab === t ? C.text : C.textDim,
+            textTransform: 'capitalize',
+          }}>{t}</div>
+        ))}
+      </div>
+
+      {tab === 'stats' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 16 }}>
+          {[
+            { l: 'Workouts', v: '148',   d: 'this year' },
+            { l: 'Streak',   v: streak,  d: 'days active' },
+            { l: 'Hours',    v: '92h',   d: 'in studio' },
+            { l: 'Cal burn', v: '64k',   d: 'lifetime' },
+          ].map((s, i) => (
+            <GlowCard key={i} style={{ padding: 14 }}>
+              <div style={{ fontFamily: MONO, fontSize: 10, color: C.textMute, letterSpacing: 1 }}>{s.l.toUpperCase()}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.8, marginTop: 6 }}>{s.v}</div>
+              <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{s.d}</div>
+            </GlowCard>
+          ))}
+        </div>
+      )}
+
+      {tab === 'badges' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 16 }}>
+          {[
+            { n: 'First Sweat', e: '💧', on: true },
+            { n: '30-Day Fire', e: '🔥', on: true },
+            { n: 'Night Owl',   e: '🌙', on: true },
+            { n: 'Iron Club',   e: '🏋️', on: true },
+            { n: 'Speed Demon', e: '⚡', on: false },
+            { n: 'Century',     e: '💯', on: false },
+          ].map((b, i) => (
+            <div key={i} style={{
+              aspectRatio: 1, padding: 10, borderRadius: 16,
+              background: b.on ? 'linear-gradient(180deg, rgba(208,255,0,0.14), transparent)' : C.surface,
+              border: `1px solid ${b.on ? 'rgba(208,255,0,0.3)' : C.line}`,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              opacity: b.on ? 1 : 0.4,
+            }}>
+              <div style={{ fontSize: 28, marginBottom: 6, filter: b.on ? 'none' : 'grayscale(1)' }}>{b.e}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center' }}>{b.n}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'leaderboard' && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontFamily: MONO, fontSize: 10, color: C.textMute, letterSpacing: 1.2, marginBottom: 10 }}>
+            HSR LAYOUT · WEEK OF APR 14
+          </div>
+          <GlowCard style={{ padding: 4 }}>
+            {[
+              { r: 1, n: 'Dhruv S.',  xp: 4820, me: false, e: '🥇' },
+              { r: 2, n: 'Priya N.',  xp: 4510, me: false, e: '🥈' },
+              { r: 3, n: 'Aswini K.', xp: 4290, me: true,  e: '🥉' },
+              { r: 4, n: 'Rahul B.',  xp: 3980, me: false },
+              { r: 5, n: 'Meera L.',  xp: 3720, me: false },
+              { r: 6, n: 'Arjun T.',  xp: 3610, me: false },
+              { r: 7, n: 'Kavya R.',  xp: 3540, me: false },
+            ].map((u, i, arr) => (
+              <div key={i} style={{
+                padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12,
+                borderBottom: i < arr.length - 1 ? `1px solid ${C.line}` : 'none',
+                background: u.me ? 'rgba(208,255,0,0.06)' : 'transparent',
+              }}>
+                <div style={{
+                  width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: MONO, fontSize: 12, color: u.me ? C.lime : C.textDim, fontWeight: 700,
+                }}>{u.e || `#${u.r}`}</div>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 16,
+                  background: u.me ? `linear-gradient(135deg, ${C.lime}, ${C.cyan})` : 'rgba(255,255,255,0.08)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 700, color: u.me ? '#000' : C.text,
+                }}>{u.n.split(' ').map(x => x[0]).join('')}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: u.me ? 700 : 500 }}>{u.n}{u.me && ' · you'}</div>
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: u.me ? C.lime : C.text }}>
+                  {u.xp.toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </GlowCard>
+        </div>
+      )}
+
+      <div style={{ marginTop: 22 }}>
+        <SectionHead title="Account" />
+        <GlowCard style={{ padding: 4 }}>
+          {['Personal info', 'Forms & waivers', 'Guest passes · 2 left', 'Notifications', 'Support', 'Sign out'].map((r, i, arr) => (
+            <div key={i} style={{
+              padding: '14px 16px', display: 'flex', alignItems: 'center',
+              borderBottom: i < arr.length - 1 ? `1px solid ${C.line}` : 'none',
+            }}>
+              <div style={{ flex: 1, fontSize: 14.5, color: r === 'Sign out' ? C.magenta : C.text }}>{r}</div>
+              {r !== 'Sign out' && Ic.chev(C.textMute, 14)}
+            </div>
+          ))}
+        </GlowCard>
+      </div>
+    </div>
+  );
+}
+
+// ───────── BOTTOM NAV ─────────
+function BottomNav({ tab, onTab, onFab }) {
+  const tabs = [
+    { id: 'home',    l: 'Home',   i: Ic.home },
+    { id: 'booking', l: 'Book',   i: Ic.cal },
+    { id: 'fab' },
+    { id: 'access',  l: 'Access', i: Ic.key },
+    { id: 'profile', l: 'You',    i: Ic.user },
+  ];
+  return (
+    <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12, zIndex: 30, pointerEvents: 'auto' }}>
+      <div style={{
+        position: 'relative',
+        borderRadius: 28, padding: '10px 10px',
+        background: 'rgba(16,17,18,0.82)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+        border: `1px solid ${C.lineHi}`,
+        boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+      }}>
+        {tabs.map(t => {
+          if (t.id === 'fab') {
+            return (
+              <button key="fab" onClick={onFab} style={{
+                width: 54, height: 54, borderRadius: 18, border: 'none',
+                background: `linear-gradient(180deg, ${C.lime}, #8cc700)`,
+                cursor: 'pointer', marginTop: -26,
+                boxShadow: `0 10px 30px -6px ${C.lime}, inset 0 1px 0 rgba(255,255,255,0.5)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>{Ic.plus('#000', 24)}</button>
+            );
+          }
+          const on = tab === t.id;
+          return (
+            <button key={t.id} data-tab={t.id} onClick={() => onTab(t.id)} style={{
+              flex: 1, maxWidth: 70, background: 'transparent', border: 'none', cursor: 'pointer',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              padding: '4px 0', color: on ? C.lime : C.textDim,
+            }}>
+              {t.i(on ? C.lime : 'rgba(255,255,255,0.55)', 22)}
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.2 }}>{t.l}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ───────── FAB SHEET ─────────
+function FabSheet({ open, onClose, onBooked }) {
+  if (!open) return null;
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, zIndex: 40,
+      background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)',
+      display: 'flex', alignItems: 'flex-end',
+      animation: 'fadein .2s ease',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: '100%', background: '#0C0D0E', borderRadius: '28px 28px 0 0',
+        border: `1px solid ${C.lineHi}`, padding: '20px 20px 40px', color: C.text,
+        animation: 'slideup .25s cubic-bezier(.2,.8,.2,1)',
+      }}>
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: C.lineHi, margin: '0 auto 16px' }} />
+        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.5 }}>Quick book</div>
+        <div style={{ fontSize: 12.5, color: C.textDim, marginTop: 4 }}>Next available near you</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+          {[
+            { t: 'Crush · HIIT',  tr: 'Kavya R.',    time: 'Today · 19:30',    xp: 50 },
+            { t: 'Zone 2 Ride',   tr: 'Rohan M.',    time: 'Today · 20:15',    xp: 40 },
+            { t: 'PT · Aarav',    tr: '1:1 session', time: 'Tomorrow · 07:00', xp: 80 },
+          ].map((s, i) => (
+            <div key={i} data-fab-option={i} onClick={() => onBooked(s)} style={{
+              padding: 14, borderRadius: 16,
+              background: C.surface, border: `1px solid ${C.line}`,
+              display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+            }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: `linear-gradient(135deg, ${C.lime}33, ${C.cyan}33)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {Ic.bolt(C.lime, 20)}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 600 }}>{s.t}</div>
+                <div style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{s.tr} · {s.time}</div>
+              </div>
+              <Pill tone="lime">+{s.xp} XP</Pill>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ───────── TOAST ─────────
+function Toast({ msg }) {
+  if (!msg) return null;
+  return (
+    <div data-toast style={{
+      position: 'absolute', top: 80, left: 20, right: 20, zIndex: 60,
+      padding: 14, borderRadius: 16,
+      background: 'rgba(16,17,18,0.92)',
+      border: `1px solid ${C.lime}`,
+      boxShadow: `0 20px 60px -10px ${C.lime}`,
+      backdropFilter: 'blur(20px)',
+      color: C.text, fontSize: 14, fontWeight: 600,
+      display: 'flex', alignItems: 'center', gap: 10,
+      animation: 'dropin .3s cubic-bezier(.2,.8,.2,1)',
+    }}>
+      <div style={{ width: 24, height: 24, borderRadius: 12, background: C.lime, color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>✓</div>
+      <div>{msg}</div>
+    </div>
+  );
+}
+
+// ───────── MAIN APP ─────────
+function App() {
+  const [booted, setBooted] = useState(() => localStorage.getItem('s2g_booted') === '1');
+  const [step, setStep] = useState(0);
+  const [userType, setUserType] = useState('member');
+  const [tab, setTab] = useState('home');
+  const [fab, setFab] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanned, setScanned] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [xp, setXp] = useState(4290);
+  const [streak, setStreak] = useState(5);
+
+  useEffect(() => {
+    if (booted) localStorage.setItem('s2g_booted', '1');
+  }, [booted]);
+
+  const toastIt = (m) => {
+    setToast(m);
+    setTimeout(() => setToast(null), 2200);
+  };
+
+  const onScan = () => {
+    setScanning(true);
+    setTimeout(() => {
+      setScanning(false);
+      setScanned(true);
+      toastIt('Entry granted · +10 XP');
+      setXp(x => x + 10);
+    }, 1800);
+  };
+
+  const onBooked = (s) => {
+    setFab(false);
+    const amt = s?.xp || 50;
+    toastIt(`Booked · ${s?.t || 'Class'} · +${amt} XP`);
+    setXp(x => x + amt);
+  };
+
+  const onEnterGym = () => setTab('access');
+
+  if (!booted) {
+    return (
+      <OnboardingScreen
+        step={step} setStep={setStep}
+        userType={userType} setUserType={setUserType}
+        onFinish={() => setBooted(true)}
+      />
+    );
+  }
+
+  return (
+    <div style={{ height: '100%', position: 'relative', background: C.bg, overflow: 'hidden' }}>
+      <Toast msg={toast} />
+      <div style={{ height: '100%', overflowY: 'auto' }} key={tab}>
+        <div style={{ animation: 'pagein .28s cubic-bezier(.2,.8,.2,1)' }}>
+          {tab === 'home'       && <HomeScreen onEnter={onEnterGym} onNav={setTab} streak={streak} xp={xp} />}
+          {tab === 'booking'    && <BookingScreen onBooked={onBooked} />}
+          {tab === 'access'     && <AccessScreen scanning={scanning} scanned={scanned} onScan={onScan} onReset={() => setScanned(false)} />}
+          {tab === 'membership' && <MembershipScreen />}
+          {tab === 'profile'    && <ProfileScreen streak={streak} xp={xp} />}
+        </div>
+      </div>
+      <BottomNav tab={tab} onTab={setTab} onFab={() => setFab(true)} />
+      <FabSheet open={fab} onClose={() => setFab(false)} onBooked={onBooked} />
+    </div>
+  );
+}
+
+// ───────── STAGE (1360 × 768 centered phone) ─────────
+function Stage() {
+  const PHONE_W = 402;
+  const PHONE_H = 874;
+  const SCALE   = 0.82; // 874 * 0.82 ≈ 717 (fits within 768 with ~25px margin top/bottom)
+
+  return (
+    <div style={{
+      width: 1360, height: 768, position: 'relative', overflow: 'hidden',
+      background: `
+        radial-gradient(60% 60% at 20% 10%, ${C.limeDim}, transparent 60%),
+        radial-gradient(50% 50% at 90% 90%, ${C.cyanDim}, transparent 60%),
+        #000`,
+      color: C.text, fontFamily: FONT,
+    }}>
+      {/* footer label */}
+      <div style={{
+        position: 'absolute', bottom: 20, left: 0, right: 0,
+        textAlign: 'center', fontFamily: MONO, fontSize: 11,
+        color: 'rgba(255,255,255,0.3)', letterSpacing: 3,
+      }}>
+        SITE2GYM · v4.0 · INTERACTIVE PROTOTYPE
+      </div>
+
+      {/* centered phone */}
+      <div style={{
+        position: 'absolute', top: '50%', left: '50%',
+        width: PHONE_W, height: PHONE_H,
+        transform: `translate(-50%, -50%) scale(${SCALE})`,
+        transformOrigin: 'center center',
+      }}>
+        <IOSDevice dark={true} width={PHONE_W} height={PHONE_H}>
+          <App />
+        </IOSDevice>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Stage />);
+</script>
+</body>
+</html>
